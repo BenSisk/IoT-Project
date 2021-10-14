@@ -1,13 +1,15 @@
 <?php
 $data = file_get_contents("php://input");
 $events = json_decode($data, true);
-//sendWebhook($events["name"]);
 
 $result = getPos();
 $lat = $result[0];
 $long = $result[1];
 $location = getCountry($lat, $long);
-sendWebhook($location);
+if ($events["name"] == "Alexa")
+{
+	sendWebhook($location);
+}
 
 function sendWebhook($event)
 {
@@ -50,7 +52,7 @@ function getCountry($lat, $long)
 	curl_close($ch);
 	$temp = json_decode($response, true);
 	$components = $temp["results"][1]["address_components"];
-	$location = "The location of the International Space Stations is currently unavailable";
+	$location = "The location of the International Space Station is currently unavailable";
 	foreach ($components as $c)
 	{
 		if (in_array("country", $c["types"]) or in_array("natural_feature", $c["types"]))
@@ -58,7 +60,6 @@ function getCountry($lat, $long)
 			$location = "The International Space Station is currently located above {$c["long_name"]}";
 		}
 	}
-	//echo "{$lat},{$long}";
 	echo $location;
 	return $location;
 }
