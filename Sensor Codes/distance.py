@@ -52,7 +52,7 @@ if __name__ == '__main__':
 	client.on_disconnect = on_disconnect
 	client.connect("192.168.50.10", 1883, 60)
 	client.loop()
-    client.loop_start()
+	client.loop_start()
 
 	GPIO.setmode(GPIO.BCM)
 
@@ -66,6 +66,6 @@ if __name__ == '__main__':
 	while not killer.kill_now:
 		main(client)
 		time.sleep(0.1)
-    client.loop_stop()
+	client.loop_stop()
 	client.disconnect()
 	GPIO.cleanup()
