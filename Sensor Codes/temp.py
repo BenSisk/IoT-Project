@@ -5,11 +5,11 @@ import signal
 import dht11
 
 def on_connect(client, userdata, flags, rc):
-    print(f"Connected with result code {rc}")
-
+  print(f"Connected with result code {rc}")
 
 def on_disconnect(client, userdata, rc):
 	client.reconnect()
+
 
 def main(client):
     result = instance.read()
@@ -20,7 +20,7 @@ def main(client):
         payloadstr = "{{\"temp\":\"{}\", \"humid\":\"{}\"}}".format(result.temperature, result.humidity)
         print(payloadstr)
         client.publish('v1/devices/me/telemetry', payload=payloadstr, qos=0, retain=False)
-        client.loop()
+        #client.loop()
 
 
 class GracefulKiller:
@@ -37,16 +37,16 @@ if __name__ == '__main__':
     client = mqtt.Client("temp")
     client.username_pw_set("user", "raspberry")
     client.on_connect = on_connect
-    client.on_disconnect = on_disconnect
     client.connect("192.168.50.10", 1883, 60)
-
     client.loop()
+    client.loop_start()
 
     GPIO.setmode(GPIO.BCM)
 
     instance = dht11.DHT11(pin=4)
     while not killer.kill_now:
-        main(client)
-        time.sleep(3)
+      main(client)
+      time.sleep(3)
+    client.loop_stop()
     client.disconnect()
     GPIO.cleanup()

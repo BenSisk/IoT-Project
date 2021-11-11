@@ -43,8 +43,8 @@ if __name__ == '__main__':
     client.on_connect = on_connect
     client.on_disconnect = on_disconnect
     client.connect("192.168.50.10", 1883, 60)
-
     client.loop()
+    client.loop_start()
 
     i2c = busio.I2C(board.SCL, board.SDA, frequency=100000)
 
@@ -59,6 +59,6 @@ if __name__ == '__main__':
 
     while not killer.kill_now:
         main(client, sgp30)
-        print(elapsed_sec)
         time.sleep(1)
+    client.loop_stop()
     client.disconnect()
