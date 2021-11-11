@@ -1,31 +1,18 @@
 import RPi.GPIO as GPIO
 import time
 import paho.mqtt.client as mqtt
-
-def on_connect(client, userdata, flags, rc):
-    print(f"Connected with result code {rc}")
-
-client = mqtt.Client("USDistance")
-client.username_pw_set("user", "raspberry")
-client.on_connect = on_connect
-client.connect("192.168.50.10", 1883, 60)
-
-
-GPIO.setmode(GPIO.BCM)
+import signal
 
 TRIG = 14
 ECHO = 15
 
-print("Measuring")
+def on_connect(client, userdata, flags, rc):
+    print(f"Connected with result code {rc}")
 
-GPIO.setup(TRIG, GPIO.OUT)
-GPIO.setup(ECHO, GPIO.IN)
+def on_disconnect(client, userdata, rc):
+	client.reconnect()
 
-GPIO.output(TRIG, False)
-print("Settling")
-time.sleep(2)
-
-while 1:
+def main(client):
 	GPIO.output(TRIG, True)
 	time.sleep(0.00001)
 	GPIO.output(TRIG, False)
@@ -42,10 +29,42 @@ while 1:
 
 	distance = round(distance, 0)
 
-	payloadstr = '{"distance":"' + str(distance) + '"}'
+	payloadstr = "{{\"distance\":\"{}\"}}".format(distance)
 	print(distance)
 	if (distance < 50):
 		client.publish('v1/devices/me/telemetry', payload=payloadstr, qos=0, retain=False)
-	time.sleep(0.2)
+		client.loop()
 
-GPIO.cleanup()
+
+class GracefulKiller:
+  kill_now = False
+  def __init__(self):
+    signal.signal(signal.SIGINT, self.exit_gracefully)
+    signal.signal(signal.SIGTERM, self.exit_gracefully)
+
+  def exit_gracefully(self, *args):
+    self.kill_now = True
+
+if __name__ == '__main__':
+	killer = GracefulKiller()
+	client = mqtt.Client("USDistance")
+	client.username_pw_set("user", "raspberry")
+	client.on_connect = on_connect
+	client.on_disconnect = on_disconnect
+	client.connect("192.168.50.10", 1883, 60)
+	client.loop()
+
+	GPIO.setmode(GPIO.BCM)
+
+	GPIO.setup(TRIG, GPIO.OUT)
+	GPIO.setup(ECHO, GPIO.IN)
+
+	GPIO.output(TRIG, False)
+	print("Settling")
+	time.sleep(2)
+
+	while not killer.kill_now:
+		main(client)
+		time.sleep(0.1)
+	client.disconnect()
+	GPIO.cleanup()
