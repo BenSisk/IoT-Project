@@ -1,17 +1,12 @@
 import time
-import paho.mqtt.client as mqtt
 import board
 import busio
 import adafruit_sgp30
+from tb_device_mqtt import TBDeviceMqttClient, TBPublishInfo
 import signal
+import logging
 
 elapsed_sec = 0
-
-def on_connect(client, userdata, flags, rc):
-    print(f"Connected with result code {rc}")
-
-def on_disconnect(client, userdata, rc):
-	client.reconnect()
 
 def main(client, spg30):
     global elapsed_sec
@@ -19,12 +14,15 @@ def main(client, spg30):
     elapsed_sec = elapsed_sec + 1
     if elapsed_sec > 5:
         elapsed_sec = 0
-        print(
-            "**** Baseline values: eCO2 = 0x%x, TVOC = 0x%x"
-            % (sgp30.baseline_eCO2, sgp30.baseline_TVOC)
-        )
-        payloadstr = "{{\"eCO2\":\"{}\", \"TVOC\":\"{}\"}}".format(sgp30.eCO2, sgp30.TVOC)
-        client.publish('v1/devices/me/telemetry', payload=payloadstr, qos=0, retain=False)
+        # print(
+        #     "**** Baseline values: eCO2 = 0x%x, TVOC = 0x%x"
+        #     % (sgp30.baseline_eCO2, sgp30.baseline_TVOC)
+        # )
+
+        telemetry = {"eCO2": sgp30.eCO2, "TVOC": sgp30.TVOC}
+        result = client.send_telemetry(telemetry)
+        result.get()
+        print("Telemetry update sent: " + str(result.rc() == TBPublishInfo.TB_ERR_SUCCESS))
 
 
 class GracefulKiller:
@@ -38,13 +36,10 @@ class GracefulKiller:
 
 if __name__ == '__main__':
     killer = GracefulKiller()
-    client = mqtt.Client("air")
-    client.username_pw_set("user", "raspberry")
-    client.on_connect = on_connect
-    client.on_disconnect = on_disconnect
-    client.connect("192.168.50.10", 1883, 60)
-    client.loop()
-    client.loop_start()
+    logging.basicConfig(level=logging.DEBUG)
+    client = TBDeviceMqttClient("192.168.50.10", "xorzYWvb6gp9am4t7Amo")
+    client.max_inflight_messages_set(100)
+    client.connect()
 
     i2c = busio.I2C(board.SCL, board.SDA, frequency=100000)
 
@@ -60,5 +55,4 @@ if __name__ == '__main__':
     while not killer.kill_now:
         main(client, sgp30)
         time.sleep(1)
-    client.loop_stop()
-    client.disconnect()
+    client.stop()
