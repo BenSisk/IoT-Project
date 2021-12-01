@@ -2,22 +2,35 @@
 #include <WiFiClient.h>
 #include <analogWrite.h>
 #include <PubSubClient.h>
+#include <ESP32Servo.h>
+
+Servo servo1;
+Servo servo2;
+
+int minUs = 500;
+int maxUs = 2400;
 
 // Your WiFi credentials.
 // Set password to "" for open networks.
-char ssid[] = "VM5241752";
-char pwd[] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+
+
+//char ssid[] = "iotsmarthome";
+//char pwd[] = "raspberry";
 
 // MQTT client
 WiFiClient wifiClient;
 PubSubClient mqttClient(wifiClient);
+//if in doubt swap back to hive
 char mqttServer [] = "broker.hivemq.com";
+//char mqttServer [] = "192.168.50.193";
 int mqttPort = 1883;
 
-int heating = 21;
-int light = 22;
-int blind = 19;
+int heating = 4;
+int light = 17;
+int servo1Pin = 21;
+int servo2Pin = 23;
 
+int pos = 0;      // position in degrees
 
 void connectToWiFi() {
   Serial.print("Connecting to ");
@@ -50,6 +63,7 @@ void reconnect() {
         uint16_t packIdSub = mqttClient.subscribe("NorthumbriaUniIoTSmartHome/Heating");
         uint16_t packIdSub2 = mqttClient.subscribe("NorthumbriaUniIoTSmartHome/Motion");
         uint16_t packIdSub3 = mqttClient.subscribe("NorthumbriaUniIoTSmartHome/Blind");
+        uint16_t packIdSub4 = mqttClient.subscribe("NorthumbriaUniIoTSmartHome/Window");
       }
   }
 }
@@ -71,13 +85,18 @@ void lightoff()
 {
     digitalWrite(light, LOW);
 }
-void blindon()
-{
-    digitalWrite(blind, HIGH);
+
+void blindcontrol(int val){
+  servo1.attach(servo1Pin, minUs, maxUs);
+  servo1.write(val);                  
+  delay(200);                           
+  servo1.detach();
 }
-void blindoff()
-{
-    digitalWrite(blind, LOW);
+void windowcontrol(int val){
+  servo2.attach(servo2Pin, minUs, maxUs);
+  servo2.write(val);                  
+  delay(200);                          
+  servo2.detach();
 }
 
 
@@ -115,36 +134,51 @@ void callback(char* topic, byte* payload, unsigned int length) {
     if (strcmp(topic, "NorthumbriaUniIoTSmartHome/Blind") == 0){
       switch((char)payload[i]){
         case '0':
-          blindoff();
+          blindcontrol(230);
           break;
         case '1':
-          blindon();
+          blindcontrol(1);        
           break;
         default:
           break;
       }
     }
-   
-
+        if (strcmp(topic, "NorthumbriaUniIoTSmartHome/Window") == 0){
+      switch((char)payload[i]){
+        case '0':
+          windowcontrol(10);
+          break;
+        case '1':
+          windowcontrol(160);        
+          break;
+        default:
+          break;
+      }
+    }
   }
 }
 
 void setup()
 {
+  // Allow allocation of all timers
+  ESP32PWM::allocateTimer(0);
+  ESP32PWM::allocateTimer(1);
+  ESP32PWM::allocateTimer(2);
+  ESP32PWM::allocateTimer(3);
   // Debug console
   Serial.begin(115200);
+  servo1.setPeriodHertz(50);      // Standard 50hz servo
+  servo2.setPeriodHertz(50);      // Standard 50hz servo
   connectToWiFi();
   setupMQTT();
 
   // Set all the motor control pins to outputs
   pinMode(heating, OUTPUT);
   pinMode(light, OUTPUT);
-  pinMode(blind, OUTPUT);
-
 }
 
 void loop()
-{
+{ 
   if (!mqttClient.connected())
     reconnect();
   mqttClient.loop();
