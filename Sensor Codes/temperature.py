@@ -13,6 +13,7 @@ def main(client):
     #print("Humidity: %-3.1f %%" % result.humidity)
     telemetry = {"temperature": result.temperature, "humidity": result.humidity}
     res = client.send_telemetry(telemetry)
+    result = client.send_attributes(telemetry)
     res.get()
     print("Telemetry update sent: " + str(res.rc() == TBPublishInfo.TB_ERR_SUCCESS))
 

@@ -7,7 +7,22 @@ def main(client):
     sunrise = response.json()['results']['sunrise']
     sunset = response.json()['results']['sunset']
 
-    attributes = {"Sunrise": sunrise, "Sunset": sunset}
+    sunrisePartition = sunrise.split(" ")
+    arraySunrise = sunrisePartition[0].split(":")
+    arraySunrise = [int(numeric_string) for numeric_string in arraySunrise]
+    if (sunrisePartition[1] == "PM"):
+        arraySunrise[0] += 12
+    intSunrise = (arraySunrise[0] *60*60) + (arraySunrise[1] * 60) + arraySunrise[2]
+
+    sunsetPartition = sunset.split(" ")
+    arraySunset = sunsetPartition[0].split(":")
+    arraySunset = [int(numeric_string) for numeric_string in arraySunset]
+    if (sunsetPartition[1] == "PM"):
+        arraySunset[0] += 12
+    intSunset = (arraySunset[0] *60*60) + (arraySunset[1] * 60) + arraySunset[2]
+
+    
+    attributes = {"Sunrise": sunrise, "Sunset": sunset, "intSunrise": intSunrise, "intSunset": intSunset}
     result = client.send_attributes(attributes)
     result.get()
     print("Attributes update sent: " + str(result.rc() == TBPublishInfo.TB_ERR_SUCCESS))

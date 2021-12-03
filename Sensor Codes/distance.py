@@ -7,6 +7,7 @@ import logging
 TRIG = 14
 ECHO = 15
 
+
 def main(client):
 	global buffer
 	global lastMotion
@@ -16,20 +17,35 @@ def main(client):
 	time.sleep(0.00001)
 	GPIO.output(TRIG, False)
 
+
+	if (time.time() > lastMotion + 5 and motionActive):
+		attributes = {"motion": False}
+		result = client.send_attributes(attributes)
+		result.get()
+		motionActive = False
+		print("Attributes update sent: " + str(result.rc() == TBPublishInfo.TB_ERR_SUCCESS))
+
 	badScan = False
-	contextTime = time.time()
+	
+	end_time = time.time() + 1
+
+	pulse_start = time.time()
+	pulse_end = time.time()
+
 	while (GPIO.input(ECHO) == 0):
 		pulse_start = time.time()
-		if (pulse_start > contextTime + 5):
+		if (pulse_start > end_time):
 			badScan = True
 			break
 
-	contextTime = time.time()
-	while (GPIO.input(ECHO) == 1 and not badScan):
-		pulse_end = time.time()
-		if (pulse_end > contextTime + 5):
-			badScan = True
-			break
+	if (not badScan):
+		while (GPIO.input(ECHO) == 1):
+			pulse_end = time.time()
+			badScan = False
+			if (pulse_end > end_time):
+				badScan = True
+				break
+	
 
 	if (not badScan):
 		pulse_duration = pulse_end - pulse_start
@@ -62,13 +78,6 @@ def main(client):
 					print("Attributes update sent: " + str(result.rc() == TBPublishInfo.TB_ERR_SUCCESS))
 					lastMotion = time.time()
 					motionActive = True
-				elif (time.time() > lastMotion + 5 and motionActive):
-					attributes = {"motion": False}
-					result = client.send_attributes(attributes)
-					result.get()
-					motionActive = False
-					print("Attributes update sent: " + str(result.rc() == TBPublishInfo.TB_ERR_SUCCESS))
-
 				buffer = []
 
 
@@ -86,7 +95,7 @@ if __name__ == '__main__':
 	killer = GracefulKiller()
 	logging.basicConfig(level=logging.DEBUG)
 	client = TBDeviceMqttClient("192.168.50.10", "kM6cVFVjmq3EGnTnmpW9")
-	client.max_inflight_messages_set(100)
+	#client.max_inflight_messages_set(100)
 	client.connect()
 	buffer = []
 	lastMotion = 0
@@ -107,7 +116,7 @@ if __name__ == '__main__':
 	time.sleep(2)
 
 	while not killer.kill_now:
-		time.sleep(0.1)
+		time.sleep(0.2)
 		main(client)
 	GPIO.cleanup()
 	client.stop()

@@ -20,7 +20,9 @@ def main(client, spg30):
         # )
 
         telemetry = {"eCO2": sgp30.eCO2, "TVOC": sgp30.TVOC}
+        #telemetry = {"eCO2": 900, "TVOC": sgp30.TVOC}
         result = client.send_telemetry(telemetry)
+        result = client.send_attributes(telemetry)
         result.get()
         print("Telemetry update sent: " + str(result.rc() == TBPublishInfo.TB_ERR_SUCCESS))
 
