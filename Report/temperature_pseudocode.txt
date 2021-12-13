@@ -1,0 +1,28 @@
+connect to dashboard
+connect to MQTT broker
+
+main loop:
+
+*Sensor Pi sends data to dashboard*
+*Dashboard updates temperature visual*
+
+pi polls dashboard temperature device attributes
+pi polls dashboard air quality device attributes
+
+if air CO2 content is higher than threshold (800ppm):
+open window and enable override
+otherwise, disable override
+
+if manual override is enabled:
+Current heating and window status should match manual control - unless air quality override window
+
+Or if heating/window status has been manually changed since last loop
+then:
+enable manual mode
+current heating and window status should match manual control - unless air quality override window
+
+Or if neither:
+compare temperature to target temperature
+if less than target and not air quality window override then:
+close window and enable heating 
+otherwise open window and disable heating

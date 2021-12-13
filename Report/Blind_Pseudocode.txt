@@ -1,0 +1,24 @@
+Blind Pseudocode
+
+connect to dashboard
+connect to MQTT broker
+
+main loop:
+
+*API Pi sends data to dashboard*
+*Dashboard updates sunrise/sunset visual*
+
+pi polls current manual status
+
+if manual override is enabled:
+	pi polls current dashboard blind open/close times attributes
+	opentime and closetime set to open/close times
+
+otherwise:
+	pi polls dashboard sunrise/sunset time device attributes
+	opentime and closetime set to sunrise/sunset times
+
+if current time > opentime and current time < closetime then:
+	open blinds
+otherwise:
+	close blinds
